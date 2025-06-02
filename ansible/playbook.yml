@@ -1,1 +1,34 @@
+---
+- name: Configure Yii2 Docker Swarm Host
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/main.yml
 
+  roles:
+    - role: docker
+      tags: docker
+    - role: nginx
+      tags: nginx
+    - role: swarm
+      tags: swarm
+
+  tasks:
+    - name: Ensure deployment directory exists
+      ansible.builtin.file:
+        path: "{{ deployment_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy docker-compose.yml
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../docker/docker-compose.yml"
+        dest: "{{ deployment_dir }}/docker-compose.yml"
+        mode: '0644'
+
+    - name: Deploy Yii2 stack
+      community.docker.docker_stack:
+        name: yii2
+        state: present
+        compose:
+          - "{{ deployment_dir }}/docker-compose.yml"
